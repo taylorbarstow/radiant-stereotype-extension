@@ -23,6 +23,21 @@ namespace :radiant do
           cp file, RAILS_ROOT + path
         end
       end  
+      
+      desc "Migrate from custom fields implementation to real field implementation"
+      task :migrate_from_custom_fields => :environment do
+        unless defined?(CustomField)
+          class CustomField < ActiveRecord::Base
+            belongs_to :page
+          end
+        end
+        
+        CustomField.find_all_by_name('stereotype').each do |field|
+          field.page.update_attributes!(:stereotype => field.value) if field.page
+        end
+        
+        puts "Now safe to remove the custom fields extension if you don't need it anymore"
+      end
     end
   end
 end

@@ -7,39 +7,17 @@ module Stereotype
         class <<self
           alias_method_chain :new_with_defaults, :stereotype
         end
-        after_save :update_custom_fields
-        include InstanceMethods
-      end
-    end
-    
-    module InstanceMethods
-      def stereotype
-        @stereotype ||= if field = custom_fields.find(:first, :conditions => {:name => 'stereotype'})
-          field.value
-        end
-      end
-      
-      def stereotype=(_stereotype)
-        @stereotype = _stereotype
-      end
-      
-      def update_custom_fields
-        cf = self.custom_fields.find(:first, :conditions => ["name = ?", "stereotype"])
-        cf.destroy if cf
-        self.custom_fields.create(:name => 'stereotype', :value => @stereotype)
       end
     end
     
     module ClassMethods
       def new_with_defaults_with_stereotype(config = Radiant::Config)
         page = new
-      
-        custom_field = CustomField.find(:first, :conditions => { :name => "stereotype", :page_id => page.parent_id})
-        name = custom_field && custom_field.value
+        parent_list = find_by_sql ['select * from pages where id=?', page.parent_id]
+        name = parent_list.first.stereotype unless parent_list.empty?
       
         if name
           parts_and_filters = config["stereotype.#{name}.parts"].blank? ? config["defaults.page.parts"].to_s.strip.split(',') : config["stereotype.#{name}.parts"].to_s.strip.split(',')
-          
           parts_and_filters.each do |part_and_filter|
             part_filter = part_and_filter.to_s.split(':')
             
